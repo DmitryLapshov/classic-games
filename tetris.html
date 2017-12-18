@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Tetris</title>
+        <script>
+            window.onload = function () {
+                'use strict';
+                var canv = document.getElementById("gc");
+                var ctx = canv.getContext("2d");
+
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, canv.width, canv.height);
+
+                document.addEventListener("keydown", keyDown);
+                var spn = document.getElementById("spn");
+                var interv = setInterval(game, 1000 / 5);
+
+                var i, j, sum = 0;
+
+                var dxy = 20;
+                var nx = canv.width / dxy;
+                var ny = canv.height / dxy;
+
+                var bottom = [];
+                for (i = 0; i < nx; i += 1) {
+                    bottom[i] = [];
+                    for (j = 0; j < ny; j += 1) {
+                        bottom[i][j] = false;
+                    }
+                }
+
+                var move = { x: 0, r: 0 };
+
+                //    0   1   2   3
+                //   *X* *** *X* ***
+                // 0 *X* XXX *X* XXX
+                //   *X* *** *X* ***
+                // 
+                //   *XX *** *X* X**
+                // 1 *X* XXX *X* XXX
+                //   *X* **X XX* ***
+                // 
+                //   XX* **X *X* ***
+                // 2 *X* XXX *X* XXX
+                //   *X* *** *XX X**
+                // 
+                //   *X* *** *X* *X*
+                // 3 *XX XXX XX* XXX
+                //   *X* *X* *X* ***
+                // 
+
+                var figures = [
+                    [
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}
+                        ],
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}
+                        ]
+                    ],
+                    [
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}, {x: 1, y: -1}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}
+                        ],
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}, {x: -1, y: 1}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: -1, y: -1}
+                        ]
+                    ],
+                    [
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}, {x: -1, y: -1}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: -1}
+                        ],
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}, {x: 1, y: 1}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: -1, y: 1}
+                        ]
+                    ],
+                    [
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}, {x: 1, y: 0}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 0, y: 1}
+                        ],
+                        [
+                            {x: 0, y: -1}, {x: 0, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}
+                        ],
+                        [
+                            {x: -1, y: 0}, {x: 0, y: 0}, {x: 1, y: 0}, {x: 0, y: -1}
+                        ]
+                    ]
+                ];
+                
+
+                var curPoint = { x: Math.floor(Math.random() * (nx - 2)) + 1, y: -2 }, newPoint = { x: 0, y: 0 };
+                var figNo = Math.floor(Math.random() * 4);
+                var figRo = Math.floor(Math.random() * 4);
+                var curFig, newFig, newRo;
+
+                curFig = createFig(curPoint);
+
+                function keyDown(evt) {
+                    switch(evt.keyCode) {
+                        case 37:
+                            move.x = -1;
+                            move.r = 0;
+                            break;
+                        case 38:
+                            move.x = 0;
+                            move.r = 1;
+                            break;
+                        case 39:
+                            move.x = 1;
+                            move.r = 0;
+                            break;
+                        case 40:
+                            move.x = 0;
+                            move.r = -1;
+                            break;
+                    }
+                }
+
+                function game() {
+                    var i, j;
+                    var landed = false, finished = false, movable = false;
+
+                    spn.innerHTML='Number: ' + sum;
+                    
+                    if (move.x != 0) {
+                        newPoint.x = curPoint.x + move.x;
+                        newPoint.y = curPoint.y;
+                        newFig = createFig(newPoint);
+                        movable = isMovable(newFig);
+                        if (!movable) {
+                            moveFigDown();
+                        }
+                    } else if (move.r != 0) {
+                        newPoint.x = curPoint.x;
+                        newPoint.y = curPoint.y;
+                        newFig = rotateFig(newPoint);
+                        movable = isMovable(newFig);
+                        if (!movable) {
+                            moveFigDown();
+                        } else {
+                            figRo = newRo;
+                        }
+                    } else {
+                        moveFigDown();
+                    }
+
+                    landed = isLanded(newFig);
+
+                    if (landed) {
+                        sum += curFig.length;
+                        finished = isFinished(newFig);
+                        if (!finished) {
+                            for (i = 0; i < curFig.length; i += 1) {
+                                bottom[curFig[i].x][curFig[i].y] = true;
+                            }
+
+                            curPoint = { x: Math.floor(Math.random() * (nx - 2)) + 1, y: -2 };
+                            figNo = Math.floor(Math.random() * 4);
+                            figRo = Math.floor(Math.random() * 4);
+                            curFig = createFig(curPoint);
+                        }
+                    } else {
+                        removeFig(curFig);
+                        drawFig(newFig);
+
+                        curPoint.x = newPoint.x;
+                        curPoint.y = newPoint.y;
+                        curFig = newFig;
+                    }
+
+                    if (finished) {
+                        for (i = 0; i < nx; i += 1) {
+                            for (j = 0; j < ny; j += 1) {
+                                if (bottom[i][j]) {
+                                    ctx.fillStyle = 'red';
+                                    ctx.fillRect(i * dxy + 1, j * dxy + 1, dxy - 2, dxy - 2);
+                                }
+                            }
+                        }
+                        clearInterval(interv);
+                    }
+
+                    move.x = 0;
+                    move.r = 0;
+                }
+
+                function moveFigDown() {
+                    newPoint.x = curPoint.x;
+                    newPoint.y = curPoint.y + 1;
+                    newFig = createFig(newPoint);
+                }
+
+                function isMovable(fig) {
+                    var i, flag = true;
+
+                    for (i = 0; i < fig.length; i += 1) {
+                        if (fig[i].x < 0 || fig[i].x >= nx || bottom[fig[i].x][fig[i].y]) {
+                            flag = false;
+                            break;
+                        }
+                    }
+
+                    return flag;
+                }
+
+                function isLanded(fig) {
+                    var i, flag = false;
+
+                    for (i = 0; i < fig.length; i += 1) {
+                        if (fig[i].x >= 0 && fig[i].x < nx) {
+                            if (fig[i].y >= ny || bottom[fig[i].x][fig[i].y]) {
+                                flag = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    return flag;
+                }
+                
+                function createFig(point) {
+                    var i, fig = [];
+
+                    for (i = 0; i < figures[figNo][figRo].length; i += 1) {
+                        fig.push({ 
+                            x: point.x + figures[figNo][figRo][i].x, 
+                            y: point.y + figures[figNo][figRo][i].y 
+                        });
+                    }
+
+                    return fig;
+                }
+
+                function rotateFig(point) {
+                    var i, fig = [];
+
+                    newRo = figRo + move.r;
+                    if (newRo < 0)
+                        newRo = 3;
+                    else if (newRo > 3)
+                        newRo = 0;
+
+                    for (i = 0; i < figures[figNo][newRo].length; i += 1) {
+                        fig.push({ 
+                            x: point.x + figures[figNo][newRo][i].x, 
+                            y: point.y + figures[figNo][newRo][i].y 
+                        });
+                    }
+
+                    return fig;
+                }
+
+                function isFinished(fig) {
+                    var i, flag = false;
+
+                    for (i = 0; i < fig.length; i += 1) {
+                        if (fig[i].y < 0) {
+                            flag = true;
+                            break;
+                        }
+                    }
+
+                    return flag;
+                }
+
+                function removeFig(fig, color) {
+                    var i;
+                    ctx.fillStyle = 'black';
+                    
+                    for (i = 0; i < fig.length; i += 1) {
+                        ctx.fillRect(fig[i].x * dxy, fig[i].y * dxy, dxy, dxy);
+                    }
+                }
+
+                function drawFig(fig, color) {
+                    var i;
+                    ctx.fillStyle = 'lime';
+                    
+                    for (i = 0; i < fig.length; i += 1) {
+                        ctx.fillRect(fig[i].x * dxy + 1, fig[i].y * dxy + 1, dxy - 2, dxy - 2);
+                    }
+                }
+            }
+        </script>
+    </head>
+
+    <body>
+        <span id="spn" style="padding:0;margin:auto;display:block;text-align:center;width:200px"></span>
+        <canvas id="gc" style="padding:0;margin:auto;display:block" width="300" height="600"></canvas>
+    </body>
+</html>
