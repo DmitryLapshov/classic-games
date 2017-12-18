@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Snake</title>
+        <script>
+            window.onload = function () {
+                'use strict';
+                var canv = document.getElementById("gc");
+                var ctx = canv.getContext("2d");
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, canv.width, canv.height);
+
+                document.addEventListener("keydown", keyDown);
+                var spn = document.getElementById("spn");
+                var interv = setInterval(game, 1000 / 10);
+
+                var dxy = 20;
+                var nx = canv.width / dxy;
+                var ny = canv.height / dxy;
+                var ptail = [];
+                var phead = { x: 0, y: Math.floor(ny / 2) };
+                var pvelo = { x: 1, y: 0 };
+                var apple = { x: Math.floor(Math.random() * nx), y: Math.floor(Math.random() * ny) };
+
+                function keyDown(evt) {
+                    switch(evt.keyCode) {
+                        case 37:
+                            pvelo.x = -1;
+                            pvelo.y = 0;
+                            break;
+                        case 38:
+                            pvelo.x = 0;
+                            pvelo.y = -1;
+                            break;
+                        case 39:
+                            pvelo.x = 1;
+                            pvelo.y = 0;
+                            break;
+                        case 40:
+                            pvelo.x = 0;
+                            pvelo.y = 1;
+                            break;
+                    }
+                }
+
+                function game() {
+                    var flag = false;
+                    var i;
+
+                    ptail.push({ x: phead.x, y: phead.y });
+                    phead.x += pvelo.x;
+                    phead.y += pvelo.y;
+                    if(phead.x === nx) phead.x = 0;
+                    if(phead.x < 0) phead.x = nx - 1;
+                    if(phead.y === ny) phead.y = 0;
+                    if(phead.y < 0) phead.y = ny - 1;
+
+                    spn.innerHTML='Length: ' + ptail.length;
+
+                    for (i = 0; i < ptail.length; i += 1) {
+                        if (phead.x === ptail[i].x && phead.y === ptail[i].y) {
+                            flag = true;
+                            break;
+                        }
+                    }
+
+                    if (flag) {
+                        for (i = 0; i < ptail.length; i += 1) {
+                            ctx.fillStyle = 'red';
+                            ctx.fillRect(ptail[i].x * dxy + 1, ptail[i].y * dxy + 1, dxy - 2, dxy - 2);
+                            clearInterval(interv);
+                        }
+                    } else {
+                        ctx.fillStyle = 'lime';
+                        ctx.fillRect(phead.x * dxy + 1, phead.y * dxy + 1, dxy - 2, dxy - 2);
+
+                        if (phead.x === apple.x && phead.y === apple.y) {
+                            apple.x = Math.floor(Math.random() * nx);
+                            apple.y = Math.floor(Math.random() * ny);
+                        } else {
+                            var rm = ptail.shift();
+                            ctx.fillStyle = 'black';
+                            ctx.fillRect(rm.x * dxy, rm.y * dxy, dxy, dxy);
+                        }
+
+                        ctx.fillStyle = 'yellow';
+                        ctx.fillRect(apple.x * dxy, apple.y * dxy, dxy, dxy);
+                    }
+                }
+            }
+        </script>
+    </head>
+
+    <body>
+        <span id="spn" style="padding:0;margin:auto;display:block;text-align:center;width:200px"></span><br/>
+        <canvas id="gc" style="padding:0;margin:auto;display:block" width="400" height="400"></canvas>
+    </body>
+</html>
