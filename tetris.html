@@ -14,7 +14,7 @@
 
                 document.addEventListener("keydown", keyDown);
                 var spn = document.getElementById("spn");
-                var interv = setInterval(game, 1000 / 5);
+                var interv = setInterval(game, 1000 / 10);
 
                 var i, j, sum = 0;
 
@@ -22,7 +22,7 @@
                 var nx = canv.width / dxy;
                 var ny = canv.height / dxy;
 
-                var bottom = [];
+                var bottom = [], rmArr = [];
                 for (i = 0; i < nx; i += 1) {
                     bottom[i] = [];
                     for (j = 0; j < ny; j += 1) {
@@ -140,7 +140,7 @@
 
                 function game() {
                     var i, j;
-                    var landed = false, finished = false, movable = false;
+                    var landed = false, finished = false, movable = false, full;
 
                     spn.innerHTML='Number: ' + sum;
                     
@@ -167,13 +167,39 @@
                     }
 
                     landed = isLanded(newFig);
-
                     if (landed) {
                         sum += curFig.length;
+
                         finished = isFinished(newFig);
                         if (!finished) {
                             for (i = 0; i < curFig.length; i += 1) {
                                 bottom[curFig[i].x][curFig[i].y] = true;
+                            }
+
+                            rmArr = [];
+                            for (i = curFig[0].y; i <= curFig[curFig.length - 1].y; i += 1) {
+                                full = true;
+                                for (j = 0; j < nx; j += 1) {
+                                    if (!bottom[j][i]) {
+                                        full = false;
+                                        break;
+                                    }
+                                }
+
+                                if (full) {
+                                    rmArr.push(i);
+                                }
+                            }
+
+                            if (rmArr.length) {
+                                for (i = 0; i < rmArr.length; i += 1) {
+                                    for (j = 0; j < nx; j += 1) {
+                                        bottom[j].splice(rmArr[i], 1);
+                                        bottom[j] = [false].concat(bottom[j]);
+                                    }
+                                }
+
+                                redrawBottom();
                             }
 
                             curPoint = { x: Math.floor(Math.random() * (nx - 2)) + 1, y: -2 };
@@ -199,11 +225,26 @@
                                 }
                             }
                         }
+
                         clearInterval(interv);
                     }
 
                     move.x = 0;
                     move.r = 0;
+                }
+
+                function redrawBottom() {
+                    var i, j;
+                    ctx.fillStyle = "black";
+                    ctx.fillRect(0, 0, canv.width, canv.height);
+                    ctx.fillStyle = "lime";
+                    for (i = 0; i < nx; i += 1) {
+                        for (j = 0; j < ny; j += 1) {
+                            if (bottom[i][j]) {
+                                ctx.fillRect(i * dxy + 1, j * dxy + 1, dxy - 2, dxy - 2);
+                            }
+                        }
+                    }
                 }
 
                 function moveFigDown() {
@@ -250,7 +291,7 @@
                         });
                     }
 
-                    return fig;
+                    return fig.sort(function (a, b) { return a.y - b.y; });
                 }
 
                 function rotateFig(point) {
@@ -269,7 +310,7 @@
                         });
                     }
 
-                    return fig;
+                    return fig.sort(function (a, b) { return a.y - b.y; });
                 }
 
                 function isFinished(fig) {
